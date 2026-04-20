@@ -1,0 +1,6 @@
+framework:
+    lock:
+        # Default lock store (filesystem-based, used for local dev / CLI)
+        default: '%env(LOCK_DSN)%'
+        # Redis lock store used by the checkout rate limiter
+        redis: '%env(REDIS_URL)%'

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>E-Ticket — {{ event.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            color: #1a1a2e;
+            background: #ffffff;
+            padding: 30px;
+        }
+
+        /* ── Header bar ────────────────────────────────────────────────── */
+        .header {
+            background: #2EC4A1;
+            color: #ffffff;
+            padding: 18px 24px;
+            border-radius: 8px 8px 0 0;
+            overflow: hidden;
+        }
+        .header .platform-name {
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .header .ticket-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 2px;
+            opacity: 0.9;
+        }
+
+        /* ── Main card ─────────────────────────────────────────────────── */
+        .card {
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+        }
+
+        /* ── Event section ─────────────────────────────────────────────── */
+        .event-section {
+            background: #f8f9fa;
+            padding: 20px 24px 16px;
+            border-bottom: 2px dashed #d0d0d0;
+        }
+        .event-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+        }
+        .event-meta {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .event-meta td {
+            padding: 3px 0;
+            font-size: 12px;
+        }
+        .event-meta .label {
+            color: #888;
+            width: 100px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+        .event-meta .value {
+            color: #1a1a2e;
+        }
+
+        /* ── Details + QR row ──────────────────────────────────────────── */
+        .details-row {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details-cell {
+            padding: 20px 24px;
+            vertical-align: top;
+            width: 65%;
+        }
+        .qr-cell {
+            padding: 20px 24px;
+            vertical-align: middle;
+            text-align: center;
+            width: 35%;
+            border-left: 1px solid #f0f0f0;
+        }
+
+        /* ── Ticket details ────────────────────────────────────────────── */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details-table tr + tr td {
+            padding-top: 10px;
+        }
+        .detail-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            font-weight: bold;
+            padding-bottom: 2px;
+        }
+        .detail-value {
+            font-size: 13px;
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+        .tier-badge {
+            display: inline-block;
+            background: #2EC4A1;
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── QR code ───────────────────────────────────────────────────── */
+        .qr-image {
+            width: 160px;
+            height: 160px;
+        }
+        .qr-caption {
+            font-size: 9px;
+            color: #aaa;
+            margin-top: 6px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ── Footer ────────────────────────────────────────────────────── */
+        .footer {
+            background: #f8f9fa;
+            border-top: 1px solid #e8e8e8;
+            padding: 12px 24px;
+            font-size: 10px;
+            color: #aaa;
+        }
+        .footer table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .footer td {
+            padding: 1px 0;
+        }
+        .footer td:last-child {
+            text-align: right;
+        }
+
+        /* ── Divider ───────────────────────────────────────────────────── */
+        .section-divider {
+            border: none;
+            border-top: 1px solid #f0f0f0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="platform-name">TicketSphere</div>
+    <div class="ticket-label">Electronic Admission Ticket</div>
+</div>
+
+<div class="card">
+
+    <!-- Event Section -->
+    <div class="event-section">
+        <div class="event-name">{{ event.name }}</div>
+        <table class="event-meta">
+            <tr>
+                <td class="label">Date &amp; Time</td>
+                <td class="value">{{ event.dateTime|date('D, d M Y \\a\\t H:i') }}</td>
+            </tr>
+            {% if not event.isOnline %}
+            <tr>
+                <td class="label">Venue</td>
+                <td class="value">{{ event.venueName }}{% if event.venueAddress %}, {{ event.venueAddress }}{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td class="label">Format</td>
+                <td class="value">Online Event</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- Details + QR -->
+    <table class="details-row">
+        <tr>
+            <!-- Left: ticket details -->
+            <td class="details-cell">
+                <table class="details-table">
+                    <tr>
+                        <td>
+                            <div class="detail-label">Ticket Holder</div>
+                            <div class="detail-value">{{ user.name ?: user.email }}</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="detail-label">Tier</div>
+                            <div class="detail-value">
+                                <span class="tier-badge">{{ tier.name }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="detail-label">Quantity</div>
+                            <div class="detail-value">{{ bookingItem.quantity }} ticket{% if bookingItem.quantity > 1 %}s{% endif %}</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="detail-label">Amount Paid</div>
+                            <div class="detail-value">{{ bookingItem.subtotal }} credits</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="detail-label">Purchase Date</div>
+                            <div class="detail-value">{{ booking.createdAt|date('d M Y, H:i') }}</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="detail-label">Booking ID</div>
+                            <div class="detail-value">#{{ booking.id }}</div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+
+            <!-- Right: QR code -->
+            <td class="qr-cell">
+                <img src="{{ qrDataUri }}" class="qr-image" alt="QR Code">
+                <div class="qr-caption">{{ eTicket.qrToken|slice(0, 16) }}…</div>
+            </td>
+        </tr>
+    </table>
+
+    <hr class="section-divider">
+
+    <!-- Footer -->
+    <div class="footer">
+        <table>
+            <tr>
+                <td>Booking Item #{{ bookingItem.id }}&ensp;|&ensp;Generated: {{ generatedAt|date('d M Y H:i') }} UTC</td>
+                <td>This ticket is valid for one-time entry. Keep it safe.</td>
+            </tr>
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>

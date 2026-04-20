@@ -1,0 +1,48 @@
+framework:
+    cache:
+        # Default cache backend → Redis.
+        app: cache.adapter.redis
+        default_redis_provider: '%env(REDIS_URL)%'
+
+        pools:
+            # ── Public event listing  (GET /api/events)  ──────────────────────────────
+            # Tags: events_list, event_{id}
+            # Invalidated: on event create/update/cancel/delete + on checkout
+            events_list_pool:
+                adapter: cache.adapter.redis
+                default_lifetime: 300       # 5 minutes
+                tags: true
+
+            # ── Single event detail  (GET /api/events/{id})  ──────────────────────────
+            # Tags: event_{id}
+            # availableSeats is ALWAYS refreshed from DB after a cache hit (race safety).
+            event_detail_pool:
+                adapter: cache.adapter.redis
+                default_lifetime: 300
+                tags: true
+
+            # ── Public categories  (GET /api/categories)  ─────────────────────────────
+            # Stable data; changes only when admin adds/updates/deletes a category.
+            categories_pool:
+                adapter: cache.adapter.redis
+                default_lifetime: 3600      # 1 hour
+                tags: true
+
+            # ── Admin system stats  (GET /api/admin/stats)  ───────────────────────────
+            # Short TTL — stale-while-fresh is acceptable here.
+            admin_stats_pool:
+                adapter: cache.adapter.redis
+                default_lifetime: 120       # 2 minutes
+
+            # ── Organizer stats  (GET /api/organizer/stats + /events/{id}/revenue)  ───
+            # Tags: event_{id}  — cleared when the event is mutated.
+            organizer_stats_pool:
+                adapter: cache.adapter.redis
+                default_lifetime: 120
+                tags: true
+
+            # ── Rate limiter counters (all limiter buckets)  ─────────────────────────
+            cache.rate_limiter:
+                adapter: cache.adapter.redis
+                provider: '%env(REDIS_URL)%'
+                default_lifetime: 3600

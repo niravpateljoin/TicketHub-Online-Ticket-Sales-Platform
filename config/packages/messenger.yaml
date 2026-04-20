@@ -1,0 +1,96 @@
+framework:
+    messenger:
+        default_bus: messenger.bus.default
+
+        # All messages that exhaust their retries land in the dead letter queue.
+        failure_transport: failed
+
+        transports:
+            # ── Dead letter queue ──────────────────────────────────────────────────────
+            failed:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    exchange:
+                        name: dead_letter
+                        type: direct
+                    queues:
+                        dead_letter_queue: ~
+                retry_strategy:
+                    max_retries: 0
+
+            # ── Payment queue  (routing_key: payment.*) ────────────────────────────────
+            payment:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    exchange:
+                        name: ticket_platform
+                        type: topic
+                        default_publish_routing_key: payment.event
+                    queues:
+                        payment_queue:
+                            binding_keys: ['payment.*']
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+
+            # ── Ticket generation queue  (routing_key: ticket.*) ──────────────────────
+            ticket:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    exchange:
+                        name: ticket_platform
+                        type: topic
+                        default_publish_routing_key: ticket.generate
+                    queues:
+                        ticket_queue:
+                            binding_keys: ['ticket.*']
+                retry_strategy:
+                    max_retries: 5
+                    delay: 2000
+                    multiplier: 2
+
+            # ── Email notification queue  (routing_key: notification.*) ───────────────
+            notification:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    exchange:
+                        name: ticket_platform
+                        type: topic
+                        default_publish_routing_key: notification.email
+                    queues:
+                        notification_queue:
+                            binding_keys: ['notification.*']
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+
+            # ── Reservation expiry queue  (routing_key: reservation.*) ────────────────
+            reservation:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    exchange:
+                        name: ticket_platform
+                        type: topic
+                        default_publish_routing_key: reservation.expire
+                    queues:
+                        reservation_queue:
+                            binding_keys: ['reservation.*']
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+
+        # ── Route message classes to their transports ──────────────────────────────────
+        routing:
+            App\Message\Payment\RefundIssuedMessage:           payment
+            App\Message\Ticket\GenerateETicketMessage:         ticket
+            App\Message\Notification\BookingConfirmedMessage:  notification
+            App\Message\Notification\EventCancelledMessage:    notification
+            App\Message\Notification\OrganizerApprovedMessage: notification
+            App\Message\Notification\OrganizerRejectedMessage: notification
+            App\Message\Notification\SendVerificationEmailMessage:    notification
+            App\Message\Notification\SendPasswordResetEmailMessage:  notification
+            App\Message\Notification\WaitlistNotificationMessage:    notification
+            App\Message\Reservation\ExpireReservationsMessage:       reservation

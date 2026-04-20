@@ -1,0 +1,73 @@
+security:
+    password_hashers:
+        App\Entity\User: 'auto'
+
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        # ── Login endpoint — handled by Symfony json_login authenticator ──
+        login:
+            pattern: ^/api/auth/login$
+            stateless: true
+            user_checker: App\Security\UserChecker
+            json_login:
+                check_path: api_auth_login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+        # ── All other API routes — JWT stateless ──
+        api:
+            pattern: ^/api
+            stateless: true
+            jwt: ~
+
+        # ── Twig shell route (GET /) — no auth required ──
+        main:
+            pattern: ^/
+            lazy: true
+            stateless: false
+
+    access_control:
+        # Public auth routes
+        - { path: ^/api/auth/login$,                roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/register$,             roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/register/organizer$,   roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/verify-email$,         roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/me$,                   roles: IS_AUTHENTICATED_FULLY }
+
+        # Public event browsing (GET only)
+        - { path: ^/api/events$,         roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/events/[^/]+$,   roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/events/\d+/banner$, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/categories,      roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/tickets/[^/]+/download$, roles: PUBLIC_ACCESS, methods: [GET] }
+
+        # Role-protected API routes
+        - { path: ^/api/admin,           roles: ROLE_ADMIN }
+        - { path: ^/api/organizer,       roles: ROLE_ORGANIZER }
+        - { path: ^/api/cart,            roles: ROLE_USER }
+        - { path: ^/api/checkout,        roles: ROLE_USER }
+        - { path: ^/api/bookings,        roles: ROLE_USER }
+        - { path: ^/api/tickets,         roles: ROLE_USER }
+
+        # Twig shell — always public
+        - { path: ^/,                    roles: PUBLIC_ACCESS }
+
+when@test:
+    security:
+        password_hashers:
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10

@@ -1,0 +1,16 @@
+TicketHub Email Verification
+
+Your TicketHub {% if isOrganizer %}organizer {% endif %}account has been created for {{ user.email }}.
+
+{% if isOrganizer %}
+Please verify your email address to confirm your organizer registration.
+
+After verification, our team will review your application. You will be notified once your account is approved and you can start creating events.
+{% else %}
+Verify your email to activate login and start booking tickets.
+{% endif %}
+
+Verification link:
+{{ verificationUrl }}
+
+If you did not sign up for TicketHub, you can safely ignore this message.

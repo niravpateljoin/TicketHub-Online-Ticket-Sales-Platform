@@ -1,0 +1,8 @@
+vich_uploader:
+    db_driver: orm
+
+    mappings:
+        event_banners:
+            uri_prefix: /uploads/event-banners
+            upload_destination: '%kernel.project_dir%/public/uploads/event-banners'
+            namer: Vich\UploaderBundle\Naming\SmartUniqueNamer

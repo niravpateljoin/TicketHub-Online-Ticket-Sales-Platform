@@ -1,0 +1,94 @@
+monolog:
+    channels:
+        - deprecation
+        - app
+        - security
+        - checkout
+        - messaging
+
+when@dev:
+    monolog:
+        handlers:
+            main:
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+                channels: ["!event"]
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ["!event", "!doctrine", "!console"]
+            checkout_log:
+                type: stream
+                path: "%kernel.logs_dir%/checkout.log"
+                level: info
+                channels: [checkout]
+            security_log:
+                type: stream
+                path: "%kernel.logs_dir%/security.log"
+                level: warning
+                channels: [security]
+            messaging_log:
+                type: stream
+                path: "%kernel.logs_dir%/messaging.log"
+                level: warning
+                channels: [messaging]
+
+when@test:
+    monolog:
+        handlers:
+            main:
+                type: fingers_crossed
+                action_level: error
+                handler: nested
+                excluded_http_codes: [404, 405]
+                channels: ["!event"]
+            nested:
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+
+when@prod:
+    monolog:
+        handlers:
+            main:
+                type: fingers_crossed
+                action_level: error
+                handler: nested
+                excluded_http_codes: [404, 405]
+                channels: ["!deprecation"]
+                buffer_size: 50
+            nested:
+                type: stream
+                path: php://stderr
+                level: debug
+                formatter: monolog.formatter.json
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ["!event", "!doctrine"]
+            deprecation:
+                type: stream
+                channels: [deprecation]
+                path: php://stderr
+                formatter: monolog.formatter.json
+            error_log:
+                type: stream
+                path: "%kernel.logs_dir%/error.log"
+                level: error
+                channels: ["!event"]
+            checkout_log:
+                type: stream
+                path: "%kernel.logs_dir%/checkout.log"
+                level: info
+                channels: [checkout]
+            security_log:
+                type: stream
+                path: "%kernel.logs_dir%/security.log"
+                level: warning
+                channels: [security]
+            messaging_log:
+                type: stream
+                path: "%kernel.logs_dir%/messaging.log"
+                level: warning
+                channels: [messaging]

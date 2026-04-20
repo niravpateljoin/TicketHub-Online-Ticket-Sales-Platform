@@ -1,0 +1,171 @@
+services:
+  setup:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html/app:rw
+    environment:
+      APP_ENV: dev
+    command: >
+      sh -c "
+        echo '[setup] Running migrations...' &&
+        php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration &&
+        echo '[setup] Loading fixtures...' &&
+        php bin/console doctrine:fixtures:load --no-interaction &&
+        echo '[setup] Done.'
+      "
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html/app:rw
+    environment:
+      APP_ENV: dev
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html/app:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      php:
+        condition: service_healthy
+
+  node:
+    image: node:20-alpine
+    working_dir: /var/www/html/app
+    volumes:
+      - .:/var/www/html/app:rw
+    command: sh -c "npm install && npm run watch"
+
+  ###> doctrine/doctrine-bundle ###
+  database:
+    image: postgres:${POSTGRES_VERSION:-16}-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tickets}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tickets}
+      POSTGRES_USER: ${POSTGRES_USER:-tickets}
+    volumes:
+      - database_data:/var/lib/postgresql/data:rw
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tickets} -d ${POSTGRES_DB:-tickets}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  ###< doctrine/doctrine-bundle ###
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  worker_ticket:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html/app:rw
+    command: php bin/console messenger:consume ticket --time-limit=3600 -vv
+    restart: unless-stopped
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  worker_notification:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html/app:rw
+    command: php bin/console messenger:consume notification --time-limit=3600 -vv
+    restart: unless-stopped
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  worker_payment:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html/app:rw
+    command: php bin/console messenger:consume payment --time-limit=3600 -vv
+    restart: unless-stopped
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  worker_reservation:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html/app:rw
+    command: php bin/console messenger:consume reservation --time-limit=3600 -vv
+    restart: unless-stopped
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  ###> doctrine/doctrine-bundle ###
+  database_data:
+  ###< doctrine/doctrine-bundle ###
+  rabbitmq_data:
+  redis_data:

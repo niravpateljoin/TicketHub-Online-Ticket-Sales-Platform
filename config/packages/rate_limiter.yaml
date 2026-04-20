@@ -1,0 +1,57 @@
+framework:
+    rate_limiter:
+        login_short:
+            policy: sliding_window
+            limit: 5
+            interval: '60 seconds'
+            lock_factory: lock.redis.factory
+            storage_service: app.rate_limiter.storage
+
+        login_long:
+            policy: fixed_window
+            limit: 20
+            interval: '15 minutes'
+            lock_factory: lock.redis.factory
+            storage_service: app.rate_limiter.storage
+
+        register_user:
+            policy: fixed_window
+            limit: 3
+            interval: '1 hour'
+            lock_factory: lock.redis.factory
+            storage_service: app.rate_limiter.storage
+
+        register_organizer:
+            policy: fixed_window
+            limit: 2
+            interval: '1 hour'
+            lock_factory: lock.redis.factory
+            storage_service: app.rate_limiter.storage
+
+        checkout:
+            policy: sliding_window
+            limit: 5
+            interval: '60 seconds'
+            lock_factory: lock.redis.factory
+            storage_service: app.rate_limiter.storage
+
+        cart_add:
+            policy: sliding_window
+            limit: 20
+            interval: '60 seconds'
+            lock_factory: lock.redis.factory
+            storage_service: app.rate_limiter.storage
+
+        event_browse:
+            policy: fixed_window
+            limit: 60
+            interval: '60 seconds'
+            lock_factory: lock.redis.factory
+            storage_service: app.rate_limiter.storage
+
+        event_create:
+            policy: fixed_window
+            limit: 10
+            interval: '1 hour'
+            lock_factory: lock.redis.factory
+            storage_service: app.rate_limiter.storage
